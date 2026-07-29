@@ -104,7 +104,20 @@ async function fetchAlphaVantage(symbol, key) {
     volumes: dates.map((d) => parseFloat(series[d]["5. volume"])),
   };
 }
-
+async function fetchTwelveData(symbol, key) {
+  if (!key) throw new Error("Twelve Data: API key belum diisi");
+  const code = symbol.replace(".JK", "");
+  const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(code)}&exchange=IDX&interval=1day&outputsize=180&apikey=${key}`;
+  const json = await viaProxy(url);
+  if (json.status === "error" || !json.values?.length) throw new Error(json.message || "Twelve Data: simbol tidak ditemukan / limit tercapai");
+  const rows = [...json.values].reverse();
+  return {
+    closes: rows.map((r) => parseFloat(r.close)),
+    highs: rows.map((r) => parseFloat(r.high)),
+    lows: rows.map((r) => parseFloat(r.low)),
+    volumes: rows.map((r) => parseFloat(r.volume)),
+  };
+}
 async function fetchPolygon(symbol, key) {
   if (!key) throw new Error("Polygon.io: API key belum diisi");
   const to = new Date().toISOString().slice(0, 10);
@@ -214,6 +227,7 @@ const PROVIDERS = {
   finnhub: { label: "Finnhub", needsKey: true, kind: "series", fetch: (s, keys) => fetchFinnhub(s, keys.finnhub) },
   alphavantage: { label: "Alpha Vantage", needsKey: true, kind: "series", fetch: (s, keys) => fetchAlphaVantage(alphaVantageSymbol(s), keys.alphavantage) },
   polygon: { label: "Polygon.io", needsKey: true, kind: "series", fetch: (s, keys) => fetchPolygon(s, keys.polygon) },
+  twelvedata: { label: "Twelve Data", needsKey: true, kind: "series", fetch: (s, keys) => fetchTwelveData(s, keys.twelvedata) },
 };
 
 // ============ Indikator ============
@@ -356,9 +370,9 @@ export default function AiTradingScanner() {
   const [storageReady, setStorageReady] = useState(false);
   const [filter, setFilter] = useState("all");
   const [autoRefresh, setAutoRefresh] = useState(0);
-  const [providerOrder, setProviderOrder] = useState(["aisearch", "yahoo", "finnhub", "alphavantage", "polygon"]);
-  const [providerEnabled, setProviderEnabled] = useState({ aisearch: true, yahoo: true, finnhub: false, alphavantage: false, polygon: false });
-  const [apiKeys, setApiKeys] = useState({ finnhub: "", alphavantage: "", polygon: "" });
+  const [providerOrder, setProviderOrder] = useState(["aisearch", "yahoo", "twelvedata", "finnhub", "alphavantage", "polygon"]);
+  const [providerEnabled, setProviderEnabled] = useState({ aisearch: true, yahoo: true, twelvedata: false, finnhub: false, alphavantage: false, polygon: false });
+  const [apiKeys, setApiKeys] = useState({ finnhub: "", alphavantage: "", polygon: "", twelvedata: "" });
   const [usedProvider, setUsedProvider] = useState({});
   const [expandedChart, setExpandedChart] = useState(null);
   const [diagLog, setDiagLog] = useState([]);

@@ -1,4 +1,0 @@
-cd ai-trading-scanner
-git remote add origin https://github.com/xianxianling92-collab/ai-trading-scanner.git
-git branch -M main
-git push -u origin main 
